@@ -18,19 +18,6 @@ Stránka je dostupná na mojej doméne: [www.crookedr.com](https://crookedr.com/
 
 ---
 
-## 🧪 Lokálne spustenie
-
-```bash
-git clone https://github.com/crookedr/aboutme.git
-cd aboutme
-npm install
-npm run dev
-```
-
-Stránka sa spustí na [http://localhost:3000](http://localhost:3000)
-
----
-
 ## 📬 Kontakt
 
 Stránka obsahuje kontaktný formulár, cez ktorý mi môžete napísať správu.  
