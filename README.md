@@ -12,48 +12,6 @@
 
 ---
 
-## ✨ Funkcie
-
-- ✅ Moderný tmavý dizajn  
-- ✅ Plne responzívna  
-- ✅ Framer Motion animácie  
-- ✅ Kontaktný formulár cez Formspree  
-- ✅ Komponentová architektúra (Next.js App Router)  
-- ✅ Pripravené na viacjazyčnú podporu (SVK/ENG)
-
----
-
-## 🛠 Použité technológie
-
-- ⚙️ [Next.js](https://nextjs.org/) – React framework  
-- 🎨 [Tailwind CSS](https://tailwindcss.com/) – utility-first styling  
-- 🎥 [Framer Motion](https://www.framer.com/motion/) – animácie  
-- 📬 [Formspree](https://formspree.io/) – odosielanie správ  
-- 🧠 [TypeScript](https://www.typescriptlang.org/) – typová istota  
-- 🧰 [Git + GitHub](https://git-scm.com/) – verzovanie a správa kódu
-
----
-
-## 📂 Štruktúra projektu
-
-```
-aboutme/
-├── public/
-│   ├── icons/
-│   └── images/
-├── src/
-│   └── app/
-│       ├── components/
-│       ├── globals.css
-│       ├── layout.tsx
-│       └── page.tsx
-├── README.md
-├── package.json
-├── tsconfig.json
-└── tailwind.config.js
-```
----
-
 ## Online
 
 Stránka je dostupná na mojej doméne: [www.crookedr.com](https://crookedr.com/)
