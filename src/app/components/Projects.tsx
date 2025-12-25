@@ -68,7 +68,6 @@ export default function Projects() {
           en: 'A new portfolio version with improved UX and a cleaner structure. I’m iterating on it and polishing details over time.',
         },
         image: '/images/crooked2.png',
-        github: 'https://github.com/crookedr/aboutme',
         demo: { sk: 'https://crookedr.com/', en: 'https://crookedr.com/' },
         isDemoAvailable: true,
       },
@@ -89,9 +88,8 @@ export default function Projects() {
           en: 'The first portfolio version in Next.js.',
         },
         image: '/images/aboutme.png',
-        github: 'https://github.com/crookedr/aboutme',
         demo: { sk: 'https://crookedr.com/', en: 'https://crookedr.com/' },
-        isDemoAvailable: true,
+        isDemoAvailable: false,
       },
     ],
     [],
@@ -113,7 +111,6 @@ export default function Projects() {
   const handlePrev = () => setCurrentPage((p) => (p - 1 + totalPages) % totalPages)
   const handleNext = () => setCurrentPage((p) => (p + 1) % totalPages)
 
-  // Motion variants (bez cubic-bezier array -> bez TS erroru)
   const sectionV = {
     hidden: { opacity: 0, y: 14 },
     show: {
