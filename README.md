@@ -1,4 +1,4 @@
-# 👤 Aboutme – Personal Website
+# 👤 Aboutme – Personal Website 2.0 !
 
 💻 Moderná, responzívna stránka **"O mne"** postavená na **Next.js** a **Tailwind CSS**.  
 🎯 Slúži ako digitálna vizitka – prezentuje moje zručnosti, vzdelanie, projekty a ponúka rýchly kontakt.  
@@ -8,7 +8,7 @@
 
 ## 📸 Náhľad
 
-![Screenshot Preview](./public/images/aboutme.png)
+![Screenshot Preview](./public/images/crooked2.png)
 
 ---
 
