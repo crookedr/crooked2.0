@@ -88,9 +88,10 @@ export default function Projects() {
           en: 'The first portfolio version in Next.js.',
         },
         image: '/images/aboutme.png',
-        demo: { sk: 'https://crookedr.com/', en: 'https://crookedr.com/' },
+        github: 'https://github.com/crookedr/aboutme',
+        demo: { sk: 'Už nedostupné', en: 'Offline' },
         isDemoAvailable: false,
-      },
+      },              
     ],
     [],
   )

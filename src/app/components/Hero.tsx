@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useLanguage } from '../context/language-context'
 import { supabase } from '../../lib/supabaseClient'
@@ -52,6 +52,12 @@ export default function Hero() {
 
   const [leaderboard, setLeaderboard] = useState<DbScore[]>([])
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
+
+  const [mobileLbOpen, setMobileLbOpen] = useState(false)
+
+  const nameRef = useRef<HTMLHeadingElement | null>(null)
+  const nameWrapRef = useRef<HTMLDivElement | null>(null)
+  const [shrinkName, setShrinkName] = useState(false)
 
   const [popSound] = useState<HTMLAudioElement | null>(() => {
     if (typeof window === 'undefined') return null
@@ -142,6 +148,19 @@ export default function Hero() {
     }
   }, [clearTypingTimers, nameText, positions])
 
+  useLayoutEffect(() => {
+    const check = () => {
+      if (!nameRef.current || !nameWrapRef.current) return
+      const textW = nameRef.current.scrollWidth
+      const wrapW = nameWrapRef.current.clientWidth
+      setShrinkName(textW > wrapW)
+    }
+
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [name])
+
   const generateBubble = useCallback(() => {
     const newBubble: Bubble = {
       size: Math.random() * (50 - 24) + 24,
@@ -196,6 +215,13 @@ export default function Hero() {
 
     return () => window.clearInterval(id)
   }, [gameState])
+
+  useEffect(() => {
+    if (!showLeaderboard) return
+    if (gameState === 'finished') {
+      setMobileLbOpen(true)
+    }
+  }, [gameState, showLeaderboard])
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -255,6 +281,7 @@ export default function Hero() {
     })
 
     setScore((prev) => prev + 1)
+
     if (!showLeaderboard) setShowLeaderboard(true)
 
     window.setTimeout(() => {
@@ -286,8 +313,87 @@ export default function Hero() {
       setTimeLeft(60)
       setGameState('idle')
       setPlayerName('')
+      setMobileLbOpen(false)
     }, 400)
   }
+
+  const LeaderboardCard = ({ compact = false }: { compact?: boolean }) => (
+    <div
+      className={`bg-black/70 border border-white/10 rounded-2xl ${
+        compact ? 'p-4' : 'p-5'
+      } shadow-[0_18px_45px_rgba(0,0,0,0.9)] backdrop-blur-md`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">
+            {isSk ? 'Leaderboard – Bubble Aim' : 'Leaderboard – Bubble Aim'}
+          </h3>
+          <p className="text-xs text-gray-400">
+            {isSk
+              ? 'Koľko bublín trafíš za 60 sekúnd od prvého zásahu.'
+              : 'How many bubbles you hit in 60 seconds from your first hit.'}
+          </p>
+        </div>
+        <span className="text-xs font-mono text-blue-300/90">
+          {isSk ? 'Skóre:' : 'Score:'} {score}
+        </span>
+      </div>
+
+      {loadingLeaderboard ? (
+        <p className="text-xs text-gray-500 mb-2">
+          {isSk ? 'Načítavam leaderboard...' : 'Loading leaderboard...'}
+        </p>
+      ) : null}
+
+      <div className="space-y-1.5 mb-4">
+        {leaderboardRows.map((row, idx) => (
+          <div
+            key={row.id}
+            className="flex items-center justify-between rounded-xl px-3 py-2 text-xs bg-white/5 border border-white/5"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-5 text-gray-400">{idx + 1}.</span>
+              <span className="text-gray-200">
+                {row.name || (isSk ? 'Neznámy hráč' : 'Unknown player')}
+              </span>
+            </div>
+            <span className="font-mono text-gray-300">{row.score}</span>
+          </div>
+        ))}
+      </div>
+
+      {gameState === 'finished' && !hasSubmittedRun && (
+        <form onSubmit={handleSaveRun} className="flex flex-col gap-2 text-xs">
+          <label className="text-gray-300">
+            {isSk
+              ? 'Zadajte meno alebo nick (voliteľné):'
+              : 'Enter your name or nickname (optional):'}
+          </label>
+          <input
+            type="text"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 text-xs text-white"
+            placeholder={isSk ? 'napr. crookedr' : 'e.g. crookedr'}
+          />
+          <button
+            type="submit"
+            className="mt-1 inline-flex items-center justify-center px-3 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition"
+          >
+            {isSk ? 'Uložiť skóre a začať znova' : 'Save score & play again'}
+          </button>
+        </form>
+      )}
+
+      {gameState !== 'finished' && (
+        <p className="mt-2 text-[11px] text-gray-500">
+          {isSk
+            ? 'Prvý zásah spustí 60s kolo. Po skončení zadáš meno a skóre sa uloží do globálneho leaderboardu.'
+            : 'Your first hit starts a 60s round. After it ends, enter your name and your score goes to the global leaderboard.'}
+        </p>
+      )}
+    </div>
+  )
 
   return (
     <section
@@ -340,12 +446,19 @@ export default function Hero() {
             transition={{ duration: 0.6 }}
           />
 
-          <h1 className="text-3xl md:text-5xl font-bold mb-2 text-white font-mono pointer-events-none">
-            {name}
-            {name.length < nameText.length && (
-              <span className="ml-1 animate-pulse text-blue-400 font-bold">█</span>
-            )}
-          </h1>
+          <div ref={nameWrapRef} className="w-full max-w-full">
+            <h1
+              ref={nameRef}
+              className={`font-bold mb-2 text-white font-mono pointer-events-none whitespace-nowrap transition-[font-size] duration-150 ${
+                shrinkName ? 'text-2xl sm:text-3xl md:text-5xl' : 'text-3xl md:text-5xl'
+              }`}
+            >
+              {name}
+              {name.length < nameText.length && (
+                <span className="ml-1 animate-pulse text-blue-400 font-bold">█</span>
+              )}
+            </h1>
+          </div>
 
           <h2 className="text-lg md:text-2xl text-sky-300/90 mb-4 font-mono pointer-events-none">
             {position}
@@ -405,6 +518,16 @@ export default function Hero() {
             >
               {isSk ? 'Kontaktovať ma' : 'Contact me'}
             </a>
+
+            {showLeaderboard && (
+              <button
+                type="button"
+                onClick={() => setMobileLbOpen(true)}
+                className="md:hidden px-5 py-3 rounded-full border border-white/15 hover:border-white/40 text-sm font-medium text-gray-200 hover:bg-white/5 transition pointer-events-auto"
+              >
+                {isSk ? 'Leaderboard' : 'Leaderboard'}
+              </button>
+            )}
           </motion.div>
 
           <motion.div
@@ -425,83 +548,7 @@ export default function Hero() {
           transition={{ duration: 0.4 }}
           className="hidden md:block pointer-events-none"
         >
-          {showLeaderboard && (
-            <div className="bg-black/70 border border-white/10 rounded-2xl p-5 shadow-[0_18px_45px_rgba(0,0,0,0.9)] backdrop-blur-md">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-white">
-                    {isSk ? 'Leaderboard – Bubble Aim' : 'Leaderboard – Bubble Aim'}
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    {isSk
-                      ? 'Koľko bublín trafíš za 60 sekúnd od prvého zásahu.'
-                      : 'How many bubbles you hit in 60 seconds from your first hit.'}
-                  </p>
-                </div>
-                <span className="text-xs font-mono text-blue-300/90">
-                  {isSk ? 'Skóre:' : 'Score:'} {score}
-                </span>
-              </div>
-
-              {loadingLeaderboard ? (
-                <p className="text-xs text-gray-500 mb-2">
-                  {isSk ? 'Načítavam leaderboard...' : 'Loading leaderboard...'}
-                </p>
-              ) : null}
-
-              <div className="space-y-1.5 mb-4">
-                {leaderboardRows.map((row, idx) => (
-                  <div
-                    key={row.id}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs bg-white/5 border border-white/5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 text-gray-400">{idx + 1}.</span>
-                      <span className="text-gray-200">
-                        {row.name || (isSk ? 'Neznámy hráč' : 'Unknown player')}
-                      </span>
-                    </div>
-                    <span className="font-mono text-gray-300">{row.score}</span>
-                  </div>
-                ))}
-              </div>
-
-              {gameState === 'finished' && !hasSubmittedRun && (
-                <form
-                  onSubmit={handleSaveRun}
-                  className="flex flex-col gap-2 text-xs pointer-events-auto"
-                >
-                  <label className="text-gray-300">
-                    {isSk
-                      ? 'Zadajte meno alebo nick (voliteľné):'
-                      : 'Enter your name or nickname (optional):'}
-                  </label>
-                  <input
-                    type="text"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 text-xs text-white"
-                    placeholder={isSk ? 'napr. crookedr' : 'e.g. crookedr'}
-                  />
-                  <button
-                    type="submit"
-                    className="mt-1 inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition"
-                  >
-                    {isSk ? 'Uložiť skóre a začať znova' : 'Save score & play again'}
-                  </button>
-                </form>
-              )}
-
-              {gameState !== 'finished' && (
-                <p className="mt-2 text-[11px] text-gray-500">
-                  {isSk
-                    ? 'Prvý zásah spustí 60s kolo. Po skončení zadáš meno a skóre sa uloží do globálneho leaderboardu.'
-                    : 'Your first hit starts a 60s round. After it ends, enter your name and your score goes to the global leaderboard.'}
-                </p>
-              )}
-            </div>
-          )}
-
+          {showLeaderboard && <LeaderboardCard />}
           {!showLeaderboard && (
             <div className="hidden md:block text-xs text-gray-500 text-right pr-1">
               {isSk
@@ -511,6 +558,35 @@ export default function Hero() {
           )}
         </motion.div>
       </div>
+
+      {showLeaderboard && mobileLbOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm p-4 flex items-end"
+          onClick={() => setMobileLbOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl mx-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="text-xs text-gray-300">
+                {isSk ? 'Leaderboard' : 'Leaderboard'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileLbOpen(false)}
+                className="text-xs text-gray-300 hover:text-white transition pointer-events-auto"
+              >
+                {isSk ? 'Zavrieť' : 'Close'}
+              </button>
+            </div>
+
+            <div className="rounded-3xl overflow-hidden">
+              <LeaderboardCard compact />
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes moveBubble {

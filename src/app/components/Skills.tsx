@@ -98,8 +98,8 @@ export default function Skills() {
             </h2>
             <p className="text-sm text-gray-300 md:text-base">
               {isSk
-                ? 'Nejde mi o to mať čo najdlhší zoznam log. Skôr o to, aby spolu nástroje dávali zmysel a aby som v nich vedel postaviť reálne veci – od rozhrania až po nasadenie.'
-                : 'I’m not trying to collect as many logos as possible. I care more about how well tools fit together and whether I can use them to build something real – from interface to deployment.'}
+                ? 'Nejde mi o kvantitu. Skôr o to, aby nástroje, ktoré používam, dávali zmysel v praxi a pomáhali mi robiť veci poriadne.'
+                : 'I’m not focused on quantity. I care more about using tools that make sense in practice and help me build things properly.'}
             </p>
           </div>
 
