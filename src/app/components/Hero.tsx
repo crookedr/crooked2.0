@@ -8,10 +8,8 @@ import {
   useRef,
   useState,
 } from 'react'
-import Image from 'next/image'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useLanguage } from '../context/language-context'
-import { useSectionCtx } from '../context/section-context'
 import { supabase } from '../../lib/supabaseClient'
 
 interface Bubble {
@@ -36,56 +34,46 @@ type DbScore = {
 
 export default function Hero() {
   const { language } = useLanguage()
-  const { goTo } = useSectionCtx()
   const isSk = language === 'sk'
 
-  const nameText = 'Roman Hatnančík'
-  const positions = useMemo(() => ['Software Support & Tester · Web Developer'], [])
+  const nameText = '<Roman Hatnančík />'
+  const positions = useMemo(
+    () => ['Frontend Developer', 'Fullstack Developer', 'Creative Developer'],
+    [],
+  )
 
   const [name, setName] = useState('')
   const [position, setPosition] = useState('')
+  const [showDescription, setShowDescription] = useState(false)
   const [positionIndex, setPositionIndex] = useState(0)
-
-  // crosshair
-  const [crosshairPos, setCrosshairPos] = useState({ x: -200, y: -200 })
-  const [crosshairVisible, setCrosshairVisible] = useState(false)
-
-  // combo – use ref for always-current value, state for display
-  const comboRef = useRef(0)
-  const [comboDisplay, setComboDisplay] = useState(0)
-  const lastHitTimeRef = useRef(0)
 
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const bubblesRef = useRef<Bubble[]>([])
-  useEffect(() => { bubblesRef.current = bubbles }, [bubbles])
+  useEffect(() => {
+    bubblesRef.current = bubbles
+  }, [bubbles])
 
   const [score, setScore] = useState(0)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
 
   const [gameState, setGameState] = useState<GameState>('idle')
-
   const [timeLeft, setTimeLeft] = useState(60)
   const [playerName, setPlayerName] = useState('')
   const [hasSubmittedRun, setHasSubmittedRun] = useState(false)
-  const [isSavingRun, setIsSavingRun] = useState(false)
-  const [runCompletion, setRunCompletion] = useState<'saved' | 'skipped' | null>(null)
 
   const [leaderboard, setLeaderboard] = useState<DbScore[]>([])
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
+
   const [mobileLbOpen, setMobileLbOpen] = useState(false)
 
-  useEffect(() => {
-    const shouldHide = crosshairVisible && gameState !== 'finished'
-    document.documentElement.classList.toggle('hero-cursor-hidden', shouldHide)
-    return () => document.documentElement.classList.remove('hero-cursor-hidden')
-  }, [crosshairVisible, gameState])
-
-  const [pops, setPops] = useState<{ id: number; x: number; y: number; size: number }[]>([])
-
   const heroRef = useRef<HTMLElement | null>(null)
+
+  // shrink name (len keď sa nezmestí na 1 riadok)
   const nameRef = useRef<HTMLHeadingElement | null>(null)
   const nameWrapRef = useRef<HTMLDivElement | null>(null)
   const [shrinkName, setShrinkName] = useState(false)
+
+  // ✅ input focus lock
   const nameInputRef = useRef<HTMLInputElement | null>(null)
 
   const [popSound] = useState<HTMLAudioElement | null>(() => {
@@ -95,14 +83,27 @@ export default function Hero() {
     return audio
   })
 
+  // typing timers
   const typeIntervalRef = useRef<number | null>(null)
   const typeNextTimeoutRef = useRef<number | null>(null)
+  const showDescTimeoutRef = useRef<number | null>(null)
+
   const bubbleIntervalRef = useRef<number | null>(null)
   const bubbleRemoveTimeoutsRef = useRef<number[]>([])
 
   const clearTypingTimers = useCallback(() => {
-    if (typeIntervalRef.current) { window.clearInterval(typeIntervalRef.current); typeIntervalRef.current = null }
-    if (typeNextTimeoutRef.current) { window.clearTimeout(typeNextTimeoutRef.current); typeNextTimeoutRef.current = null }
+    if (typeIntervalRef.current) {
+      window.clearInterval(typeIntervalRef.current)
+      typeIntervalRef.current = null
+    }
+    if (typeNextTimeoutRef.current) {
+      window.clearTimeout(typeNextTimeoutRef.current)
+      typeNextTimeoutRef.current = null
+    }
+    if (showDescTimeoutRef.current) {
+      window.clearTimeout(showDescTimeoutRef.current)
+      showDescTimeoutRef.current = null
+    }
   }, [])
 
   const typePositionRef = useRef<(text: string, index: number) => void>(() => {})
@@ -112,13 +113,24 @@ export default function Hero() {
       clearTypingTimers()
       setPosition('')
       setPositionIndex(index)
+
       let i = 0
+
       typeIntervalRef.current = window.setInterval(() => {
         i += 1
         setPosition(text.slice(0, i))
+
         if (i >= text.length) {
-          if (typeIntervalRef.current) { window.clearInterval(typeIntervalRef.current); typeIntervalRef.current = null }
-typeNextTimeoutRef.current = window.setTimeout(() => {
+          if (typeIntervalRef.current) {
+            window.clearInterval(typeIntervalRef.current)
+            typeIntervalRef.current = null
+          }
+
+          showDescTimeoutRef.current = window.setTimeout(() => {
+            setShowDescription(true)
+          }, 800)
+
+          typeNextTimeoutRef.current = window.setTimeout(() => {
             const nextIndex = (index + 1) % positions.length
             typePositionRef.current(positions[nextIndex], nextIndex)
           }, 2000)
@@ -128,27 +140,38 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
     [clearTypingTimers, positions],
   )
 
-  useEffect(() => { typePositionRef.current = typePositionImpl }, [typePositionImpl])
+  useEffect(() => {
+    typePositionRef.current = typePositionImpl
+  }, [typePositionImpl])
 
   useEffect(() => {
     clearTypingTimers()
     setName('')
+    setShowDescription(false)
+
     let i = 0
     const typing = window.setInterval(() => {
       i += 1
       setName(nameText.slice(0, i))
+
       if (i >= nameText.length) {
         window.clearInterval(typing)
         typePositionRef.current(positions[0], 0)
       }
     }, 120)
-    return () => { window.clearInterval(typing); clearTypingTimers() }
+
+    return () => {
+      window.clearInterval(typing)
+      clearTypingTimers()
+    }
   }, [clearTypingTimers, nameText, positions])
 
   useLayoutEffect(() => {
     const check = () => {
       if (!nameRef.current || !nameWrapRef.current) return
-      setShrinkName(nameRef.current.scrollWidth > nameWrapRef.current.clientWidth)
+      const textW = nameRef.current.scrollWidth
+      const wrapW = nameWrapRef.current.clientWidth
+      setShrinkName(textW > wrapW)
     }
     check()
     window.addEventListener('resize', check)
@@ -157,56 +180,80 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
 
   const generateBubble = useCallback(() => {
     const newBubble: Bubble = {
-      size: Math.random() * 26 + 24,
+      size: Math.random() * (50 - 24) + 24,
       top: Math.random() * 100,
       left: Math.random() * 100,
-      duration: Math.random() * 5 + 8,
-      opacity: Math.random() * 0.32 + 0.18,
+      duration: Math.random() * (13 - 8) + 8,
+      opacity: Math.random() * (0.5 - 0.18) + 0.18,
       key: Date.now() + Math.random(),
       bornAt: performance.now(),
     }
+
     setBubbles((prev) => [...prev, newBubble])
+
     const t = window.setTimeout(() => {
       setBubbles((prev) => prev.filter((b) => b.key !== newBubble.key))
-      bubbleRemoveTimeoutsRef.current = bubbleRemoveTimeoutsRef.current.filter((x) => x !== t)
+      bubbleRemoveTimeoutsRef.current = bubbleRemoveTimeoutsRef.current.filter(
+        (x) => x !== t,
+      )
     }, newBubble.duration * 1000)
+
     bubbleRemoveTimeoutsRef.current.push(t)
   }, [])
 
+  // bubliny generujeme iba kým nie je finished
   useEffect(() => {
     if (gameState === 'finished') return
-    bubbleIntervalRef.current = window.setInterval(generateBubble, 800)
+
+    bubbleIntervalRef.current = window.setInterval(generateBubble, 900)
+
     return () => {
-      if (bubbleIntervalRef.current) { window.clearInterval(bubbleIntervalRef.current); bubbleIntervalRef.current = null }
+      if (bubbleIntervalRef.current) {
+        window.clearInterval(bubbleIntervalRef.current)
+        bubbleIntervalRef.current = null
+      }
       bubbleRemoveTimeoutsRef.current.forEach((t) => window.clearTimeout(t))
       bubbleRemoveTimeoutsRef.current = []
     }
   }, [generateBubble, gameState])
 
+  // timer
   useEffect(() => {
     if (gameState !== 'playing') return
+
     setTimeLeft(60)
     setHasSubmittedRun(false)
-    setRunCompletion(null)
-    comboRef.current = 0
-    setComboDisplay(0)
-    lastHitTimeRef.current = 0
+
     const id = window.setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) { window.clearInterval(id); setGameState('finished'); return 0 }
+        if (prev <= 1) {
+          window.clearInterval(id)
+          setGameState('finished')
+          return 0
+        }
         return prev - 1
       })
     }, 1000)
+
     return () => window.clearInterval(id)
   }, [gameState])
 
+  // ✅ po finished: otvor mobile LB + zafokusuj input
   useEffect(() => {
+    if (!showLeaderboard) return
     if (gameState !== 'finished') return
-    setMobileLbOpen(true)
-    const t = window.setTimeout(() => nameInputRef.current?.focus(), 0)
-    return () => window.clearTimeout(t)
-  }, [gameState])
 
+    setMobileLbOpen(true)
+
+    // fokus až po renderi
+    const t = window.setTimeout(() => {
+      nameInputRef.current?.focus()
+    }, 0)
+
+    return () => window.clearTimeout(t)
+  }, [gameState, showLeaderboard])
+
+  // leaderboard fetch + realtime
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoadingLeaderboard(true)
@@ -216,52 +263,63 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
         .order('score', { ascending: false })
         .order('created_at', { ascending: true })
         .limit(10)
+
       if (!error && data) setLeaderboard(data)
       setLoadingLeaderboard(false)
     }
+
     fetchLeaderboard()
+
     const channel = supabase
       .channel('public:bubble_scores')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bubble_scores' }, (payload) => {
-        const newRow = payload.new as DbScore
-        setLeaderboard((prev) => {
-          const merged = [...prev.filter((row) => row.id !== newRow.id), newRow]
-          merged.sort((a, b) => b.score - a.score || a.created_at.localeCompare(b.created_at))
-          return merged.slice(0, 10)
-        })
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bubble_scores' },
+        (payload) => {
+          const newRow = payload.new as DbScore
+          setLeaderboard((prev) => {
+            const merged = [...prev, newRow]
+            merged.sort(
+              (a, b) =>
+                b.score - a.score || a.created_at.localeCompare(b.created_at),
+            )
+            return merged.slice(0, 10)
+          })
+        },
+      )
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
+  // ===== HIT SYSTEM (iba počas hry) =====
   const popBubbleByKey = useCallback(
-    (bubbleKey: number, hitX?: number, hitY?: number, hitSize?: number) => {
+    (bubbleKey: number) => {
       if (gameState === 'finished') return
       if (gameState === 'idle') setGameState('playing')
-
-      const now = Date.now()
-      const newCombo = (now - lastHitTimeRef.current) < 700 ? comboRef.current + 1 : 1
-      comboRef.current = newCombo
-      setComboDisplay(newCombo)
-      lastHitTimeRef.current = now
 
       setBubbles((prev) => {
         const bubble = prev.find((b) => b.key === bubbleKey)
         if (!bubble || bubble.popped) return prev
-        if (popSound) { popSound.currentTime = 0; popSound.play().catch(() => {}) }
-        return prev.map((b) => b.key === bubbleKey ? { ...b, popped: true } : b)
+
+        if (popSound) {
+          popSound.currentTime = 0
+          popSound.play().catch(() => {})
+        }
+
+        return prev.map((b) =>
+          b.key === bubbleKey ? { ...b, popped: true } : b,
+        )
       })
 
       setScore((prev) => prev + 1)
       if (!showLeaderboard) setShowLeaderboard(true)
 
-      if (hitX !== undefined && hitY !== undefined) {
-        const id = Date.now() + Math.random()
-        setPops((prev) => [...prev, { id, x: hitX, y: hitY, size: hitSize ?? 32 }])
-        window.setTimeout(() => setPops((prev) => prev.filter((p) => p.id !== id)), 650)
-      }
-
-      window.setTimeout(() => setBubbles((prev) => prev.filter((b) => b.key !== bubbleKey)), 220)
+      window.setTimeout(() => {
+        setBubbles((prev) => prev.filter((b) => b.key !== bubbleKey))
+      }, 220)
     },
     [gameState, popSound, showLeaderboard],
   )
@@ -270,54 +328,58 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
     (clientX: number, clientY: number) => {
       const hero = heroRef.current
       if (!hero) return
+
       const rect = hero.getBoundingClientRect()
       const x = clientX - rect.left
       const y = clientY - rect.top
+
       if (x < 0 || y < 0 || x > rect.width || y > rect.height) return
 
       const list = bubblesRef.current
+      if (list.length === 0) return
+
       const now = performance.now()
       const vh = window.innerHeight
 
       let bestKey: number | null = null
       let bestDist = Infinity
-      let bestCX = 0, bestCY = 0, bestSize = 32
 
       for (const b of list) {
         if (b.popped) continue
+
         const r = b.size / 2
         const baseX = (b.left / 100) * rect.width
         const baseY = (b.top / 100) * rect.height
-        const progress = Math.min(1, Math.max(0, (now - b.bornAt) / (b.duration * 1000)))
+
+        const progress = Math.min(
+          1,
+          Math.max(0, (now - b.bornAt) / (b.duration * 1000)),
+        )
+        const translateY = -progress * vh
+
         const cx = baseX + r
-        const cy = baseY + r - progress * vh
-        const dx = x - cx, dy = y - cy
+        const cy = baseY + r + translateY
+
+        const dx = x - cx
+        const dy = y - cy
         const dist = Math.sqrt(dx * dx + dy * dy)
+
         if (dist <= r && dist < bestDist) {
           bestDist = dist
           bestKey = b.key
-          bestCX = rect.left + cx
-          bestCY = rect.top + cy
-          bestSize = b.size
         }
       }
 
-      if (bestKey != null) {
-        popBubbleByKey(bestKey, bestCX, bestCY, bestSize)
-      }
+      if (bestKey != null) popBubbleByKey(bestKey)
     },
     [popBubbleByKey],
   )
 
+  // ✅ keď finished → úplne nič nechytaj (aby input nikdy nestratil fokus)
   const onHeroPointerDownCapture = (e: React.PointerEvent<HTMLElement>) => {
     if (gameState === 'finished') return
     tryHitAt(e.clientX, e.clientY)
   }
-
-  const onHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    if (gameState === 'finished') return
-    setCrosshairPos({ x: e.clientX, y: e.clientY })
-  }, [gameState])
 
   const basePlayers: DbScore[] = [
     { id: 'ghost', name: 'Ghost Dev', score: 12, created_at: '' },
@@ -325,265 +387,140 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
     { id: 'bot', name: 'Training Bot', score: 4, created_at: '' },
   ]
 
-  const leaderboardRows = (leaderboard.length > 0 ? leaderboard : basePlayers).filter(
-    (row, index, rows) => rows.findIndex((candidate) => candidate.id === row.id) === index,
-  )
-
-  const closeLeaderboard = () => {
-    setScore(0)
-    setTimeLeft(60)
-    setGameState('idle')
-    setPlayerName('')
-    setMobileLbOpen(false)
-    setHasSubmittedRun(false)
-    setIsSavingRun(false)
-    setRunCompletion(null)
-    comboRef.current = 0
-    setComboDisplay(0)
-  }
+  const leaderboardRows: DbScore[] =
+    leaderboard.length > 0 ? leaderboard : basePlayers
 
   const handleSaveRun = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (hasSubmittedRun || isSavingRun || score === 0) return
-    setIsSavingRun(true)
-    const displayName = playerName.trim() || (isSk ? 'Anonymný hráč' : 'Anonymous player')
+    if (hasSubmittedRun || score === 0) return
 
-    const { data: existing } = await supabase
-      .from('bubble_scores')
-      .select('id, score')
-      .eq('name', displayName)
-      .order('score', { ascending: false })
-      .limit(1)
-
-    const best = existing?.[0]
-    if (best) {
-      if (score > best.score) {
-        await supabase.from('bubble_scores').update({ score }).eq('id', best.id)
-      }
-    } else {
-      await supabase.from('bubble_scores').insert({ name: displayName, score })
-    }
-
-    // refetch since UPDATE doesn't fire the realtime INSERT listener
-    const { data: fresh } = await supabase
-      .from('bubble_scores')
-      .select('id, name, score, created_at')
-      .order('score', { ascending: false })
-      .order('created_at', { ascending: true })
-      .limit(10)
-    if (fresh) setLeaderboard(fresh)
-
-    setIsSavingRun(false)
-    setRunCompletion('saved')
     setHasSubmittedRun(true)
+
+    const displayName =
+      playerName.trim() || (isSk ? 'Anonymný hráč' : 'Anonymous player')
+
+    await supabase.from('bubble_scores').insert({ name: displayName, score })
+
+    window.setTimeout(() => {
+      setScore(0)
+      setTimeLeft(60)
+      setGameState('idle')
+      setPlayerName('')
+      setMobileLbOpen(false)
+    }, 400)
   }
 
-  const handleSkipSave = () => {
-    if (isSavingRun) return
-    setRunCompletion('skipped')
-    setHasSubmittedRun(true)
-  }
-
-  const renderLeaderboardCard = (compact = false) => (
+  const LeaderboardCard = ({ compact = false }: { compact?: boolean }) => (
     <div
-      data-section-scroll-lock
-      className={`w-full min-w-0 bg-black/70 border border-white/10 rounded-xl ${compact ? 'p-4' : 'p-5'} shadow-[0_18px_45px_rgba(0,0,0,0.9)] backdrop-blur-md`}
+      className={`bg-black/70 border border-white/10 rounded-2xl ${
+        compact ? 'p-4' : 'p-5'
+      } shadow-[0_18px_45px_rgba(0,0,0,0.9)] backdrop-blur-md`}
+      // ✅ extra poistka: nič z toho nesmie triggernúť hero capture
       onPointerDown={(e) => e.stopPropagation()}
       onPointerDownCapture={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-white">Leaderboard – Bubble Aim</h3>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">
+            {isSk ? 'Leaderboard – Bubble Aim' : 'Leaderboard – Bubble Aim'}
+          </h3>
           <p className="text-xs text-gray-400">
-            {isSk ? 'Koľko bublín trafíš za 60s od prvého zásahu.' : 'How many bubbles you hit in 60s from your first hit.'}
+            {isSk
+              ? 'Koľko bublín trafíš za 60 sekúnd od prvého zásahu.'
+              : 'How many bubbles you hit in 60 seconds from your first hit.'}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="whitespace-nowrap text-xs font-mono text-blue-300/90">{isSk ? 'Skóre:' : 'Score:'} {score}</span>
-          {gameState === 'finished' && (
-            <button
-              type="button"
-              onClick={closeLeaderboard}
-              aria-label={isSk ? 'Zavrieť leaderboard' : 'Close leaderboard'}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/10 text-base leading-none text-gray-500 transition-colors hover:border-white/25 hover:text-white"
-            >
-              ×
-            </button>
-          )}
-        </div>
+        <span className="text-xs font-mono text-blue-300/90">
+          {isSk ? 'Skóre:' : 'Score:'} {score}
+        </span>
       </div>
 
-      {loadingLeaderboard && <p className="text-xs text-gray-500 mb-2">{isSk ? 'Načítavam...' : 'Loading...'}</p>}
+      {loadingLeaderboard ? (
+        <p className="text-xs text-gray-500 mb-2">
+          {isSk ? 'Načítavam leaderboard...' : 'Loading leaderboard...'}
+        </p>
+      ) : null}
 
-      <div className="leaderboard-scroll mb-4 max-h-[220px] space-y-1.5 overflow-y-auto pr-2">
+      <div className="space-y-1.5 mb-4">
         {leaderboardRows.map((row, idx) => (
-          <div key={row.id} className="grid min-w-0 grid-cols-[1.75rem_minmax(0,1fr)_2.5rem] items-center gap-2 border-b border-white/[0.06] px-1 py-2 text-xs last:border-b-0">
-            <span className="text-gray-500">{idx + 1}.</span>
-            <span className="truncate text-gray-200">{row.name || (isSk ? 'Neznámy hráč' : 'Unknown player')}</span>
-            <span className="text-right font-mono text-gray-300">{row.score}</span>
+          <div
+            key={row.id}
+            className="flex items-center justify-between rounded-xl px-3 py-2 text-xs bg-white/5 border border-white/5"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-5 text-gray-400">{idx + 1}.</span>
+              <span className="text-gray-200">
+                {row.name || (isSk ? 'Neznámy hráč' : 'Unknown player')}
+              </span>
+            </div>
+            <span className="font-mono text-gray-300">{row.score}</span>
           </div>
         ))}
       </div>
 
-      <AnimatePresence initial={false} mode="wait">
       {gameState === 'finished' && !hasSubmittedRun && (
-        <motion.form
-          key="score-form"
-          onSubmit={handleSaveRun}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.2 }}
-          className="flex flex-col gap-2 text-xs"
-        >
+        <form onSubmit={handleSaveRun} className="flex flex-col gap-2 text-xs">
           <label className="text-gray-300">
-            {isSk ? 'Zadajte meno alebo nick (voliteľné):' : 'Enter your name or nickname (optional):'}
+            {isSk
+              ? 'Zadajte meno alebo nick (voliteľné):'
+              : 'Enter your name or nickname (optional):'}
           </label>
+
           <input
             ref={nameInputRef}
             type="text"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
+            // ✅ toto je ten fix: ak by niečo spravilo blur, hneď to vrátime
+            onBlur={() => {
+              if (gameState === 'finished' && !hasSubmittedRun) {
+                window.setTimeout(() => nameInputRef.current?.focus(), 0)
+              }
+            }}
+            autoFocus
             className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 text-xs text-white cursor-text"
             placeholder={isSk ? 'napr. crookedr' : 'e.g. crookedr'}
-            autoComplete="off" autoCorrect="off" spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
-          <div className="flex gap-2 mt-1">
-            <button disabled={isSavingRun} type="submit" className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-500 disabled:cursor-wait disabled:opacity-60 text-white font-medium text-xs transition cursor-pointer">
-              {isSavingRun
-                ? (isSk ? 'Ukladám…' : 'Saving…')
-                : (isSk ? 'Uložiť a hrať znova' : 'Save & play again')}
-            </button>
-            <button disabled={isSavingRun} type="button" onClick={handleSkipSave} className="px-3 py-2 rounded-md border border-white/10 text-gray-500 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40 font-medium text-xs transition cursor-pointer">
-              {isSk ? 'Neuložiť' : "Don't save"}
-            </button>
-          </div>
-        </motion.form>
+
+          <button
+            type="submit"
+            className="mt-1 inline-flex items-center justify-center px-3 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition cursor-pointer"
+          >
+            {isSk ? 'Uložiť skóre a začať znova' : 'Save score & play again'}
+          </button>
+        </form>
       )}
-      {gameState === 'finished' && hasSubmittedRun && runCompletion && (
-        <motion.div
-          key="score-complete"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.2 }}
-          className="flex min-h-[104px] items-center text-xs text-gray-400"
-        >
-          {runCompletion === 'saved'
-            ? (isSk ? 'Skóre bolo uložené.' : 'Score saved.')
-            : (isSk ? 'Pokračujem bez uloženia.' : 'Continuing without saving.')}
-        </motion.div>
-      )}
-      </AnimatePresence>
 
       {gameState !== 'finished' && (
         <p className="mt-2 text-[11px] text-gray-500">
-          {isSk ? 'Prvý zásah spustí 60s kolo.' : 'Your first hit starts a 60s round.'}
+          {isSk
+            ? 'Prvý zásah spustí 60s kolo. Po skončení zadáš meno a skóre sa uloží do globálneho leaderboardu.'
+            : 'Your first hit starts a 60s round. After it ends, enter your name and your score goes to the global leaderboard.'}
         </p>
       )}
     </div>
   )
 
-  const crosshairLine = 'rgba(255,255,255,0.92)'
-  const crosshairOutline = 'rgba(0,0,0,0.55)'
+  const heroCursor =
+    gameState === 'finished' ? 'cursor-default' : 'cursor-crosshair'
 
   return (
     <section
-      ref={heroRef}
+      ref={heroRef as any}
       id="hero"
-      className={`min-h-screen flex items-center px-6 relative overflow-hidden bg-gray-950 ${gameState === 'finished' ? 'cursor-default' : 'hero-crosshair-active cursor-none'}`}
+      className={`min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-gray-950 ${heroCursor}`}
       onPointerDownCapture={onHeroPointerDownCapture}
-      onMouseMove={onHeroMouseMove}
-      onMouseEnter={() => setCrosshairVisible(true)}
-      onMouseLeave={() => setCrosshairVisible(false)}
     >
-      {/* background blobs */}
+      {/* background */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
-        <div className="absolute -top-48 left-1/4 w-[520px] h-[520px] bg-blue-600/[0.08] rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -right-24 w-[360px] h-[360px] bg-sky-400/[0.05] rounded-full blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-80 w-[120%] -translate-x-1/2 bg-gradient-to-b from-blue-500/30 via-sky-500/15 to-transparent blur-3xl" />
       </div>
 
-      {/* timer bar */}
-      {gameState === 'playing' && (
-        <div className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-white/5 z-30">
-          <div
-            className="h-full bg-blue-400/80 transition-[width] duration-1000 ease-linear"
-            style={{ width: `${(timeLeft / 60) * 100}%` }}
-          />
-        </div>
-      )}
-
-      {/* custom crosshair — CS style */}
-      {gameState !== 'finished' && crosshairVisible && (
-        <svg
-          width="40" height="40" viewBox="-20 -20 40 40"
-          className="pointer-events-none fixed z-[70]"
-          style={{ left: crosshairPos.x - 20, top: crosshairPos.y - 20, transition: 'none' }}
-        >
-          {/* outline for contrast on any background */}
-          <line x1="0" y1="-15" x2="0" y2="-5" stroke={crosshairOutline} strokeWidth="3" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-          <line x1="0" y1="5" x2="0" y2="15" stroke={crosshairOutline} strokeWidth="3" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-          <line x1="-15" y1="0" x2="-5" y2="0" stroke={crosshairOutline} strokeWidth="3" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-          <line x1="5" y1="0" x2="15" y2="0" stroke={crosshairOutline} strokeWidth="3" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-          {/* main lines */}
-          <line x1="0" y1="-15" x2="0" y2="-5" stroke={crosshairLine} strokeWidth="1.5" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-          <line x1="0" y1="5" x2="0" y2="15" stroke={crosshairLine} strokeWidth="1.5" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-          <line x1="-15" y1="0" x2="-5" y2="0" stroke={crosshairLine} strokeWidth="1.5" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-          <line x1="5" y1="0" x2="15" y2="0" stroke={crosshairLine} strokeWidth="1.5" strokeLinecap="square" style={{ transition: 'stroke 0.1s' }} />
-        </svg>
-      )}
-
-      {/* pop effects */}
-      {pops.map((pop) => {
-        const angles = [0, 45, 90, 135, 180, 225, 270, 315]
-        return (
-          <div key={pop.id} className="pointer-events-none fixed z-40" style={{ left: pop.x, top: pop.y }}>
-            <motion.div
-              initial={{ scale: 0.35, opacity: 0.95 }} animate={{ scale: 2.6, opacity: 0 }}
-              transition={{ duration: 0.42, ease: 'easeOut' }}
-              className="absolute rounded-full border-[1.5px]"
-              style={{ borderColor: 'rgba(147,210,255,0.85)', width: pop.size, height: pop.size, marginLeft: -pop.size / 2, marginTop: -pop.size / 2 }}
-            />
-            <motion.div
-              initial={{ scale: 0.55, opacity: 0.6 }} animate={{ scale: 1.95, opacity: 0 }}
-              transition={{ duration: 0.5, delay: 0.05, ease: 'easeOut' }}
-              className="absolute rounded-full border"
-              style={{ borderColor: 'rgba(96,165,250,0.5)', width: pop.size, height: pop.size, marginLeft: -pop.size / 2, marginTop: -pop.size / 2 }}
-            />
-            <motion.div
-              initial={{ scale: 0.7, opacity: 0.75 }} animate={{ scale: 1.6, opacity: 0 }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="absolute rounded-full bg-white/25"
-              style={{ width: pop.size * 0.55, height: pop.size * 0.55, marginLeft: -(pop.size * 0.55) / 2, marginTop: -(pop.size * 0.55) / 2 }}
-            />
-            {angles.map((angle) => {
-              const rad = (angle * Math.PI) / 180
-              const d = pop.size * 0.9
-              return (
-                <motion.div
-                  key={angle}
-                  initial={{ x: 0, y: 0, opacity: 0.9, scale: 1 }}
-                  animate={{ x: Math.cos(rad) * d, y: Math.sin(rad) * d, opacity: 0, scale: 0 }}
-                  transition={{ duration: 0.4, ease: [0.2, 0, 0.8, 1] }}
-                  className="absolute w-[5px] h-[5px] rounded-full bg-sky-300/90"
-                  style={{ marginLeft: -2.5, marginTop: -2.5 }}
-                />
-              )
-            })}
-            <motion.div
-              initial={{ opacity: 1, y: 0, scale: 1 }} animate={{ opacity: 0, y: -52, scale: 1.1 }}
-              transition={{ duration: 0.58, ease: 'easeOut' }}
-              className="absolute text-sm font-bold font-mono text-blue-200 select-none whitespace-nowrap"
-              style={{ left: '50%', transform: 'translateX(-50%)', top: -pop.size / 2 - 8 }}
-            >
-              +1
-            </motion.div>
-          </div>
-        )
-      })}
-
-      {/* bubbles */}
+      {/* bubbles visual */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden z-10">
         {bubbles.map((bubble) => (
           <div
@@ -597,189 +534,149 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
               opacity: bubble.popped ? 0 : bubble.opacity,
               position: 'absolute',
               borderRadius: '50%',
-              background: 'radial-gradient(circle at 32% 26%, rgba(255,255,255,0.5) 0%, rgba(147,210,255,0.18) 28%, rgba(56,189,248,0.12) 55%, rgba(15,23,42,0.08) 100%)',
-              border: '1px solid rgba(147,220,255,0.35)',
-              boxShadow: 'inset -2px -2px 6px rgba(56,189,248,0.2), inset 2px 2px 8px rgba(255,255,255,0.12), 0 2px 18px rgba(56,189,248,0.18)',
-              backdropFilter: 'blur(2px)',
+              background:
+                'radial-gradient(circle at 30% 30%, rgba(56,189,248,0.85), rgba(15,23,42,0.25))',
+              boxShadow: '0 0 16px rgba(56,189,248,0.5)',
               animationName: 'moveBubble',
               animationDuration: `${bubble.duration}s`,
               animationTimingFunction: 'linear',
               animationFillMode: 'forwards',
             }}
-          />
+          >
+            {bubble.popped && (
+              <div className="pointer-events-none absolute inset-0 rounded-full pop-ring" />
+            )}
+          </div>
         ))}
       </div>
 
-      {/* main content */}
-      <div className={`relative z-20 max-w-6xl w-full mx-auto grid gap-10 lg:gap-16 items-center transition-[grid-template-columns] duration-500 ease-out ${
-        gameState === 'finished'
-          ? 'md:grid-cols-[minmax(0,1fr)_20rem] lg:grid-cols-[minmax(0,1fr)_23rem]'
-          : 'md:grid-cols-[minmax(0,1fr)_176px]'
-      }`}>
-
-        {/* left — text */}
+      {/* content */}
+      <div className="relative z-20 max-w-6xl w-full grid gap-10 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-center">
+        {/* left */}
         <div className="pointer-events-none flex flex-col items-center md:items-start text-center md:text-left">
+          <motion.img
+            src="images/02.jpg"
+            alt="Moja fotka"
+            className="w-32 h-32 md:w-36 md:h-36 rounded-full border-4 border-white/80 shadow-[0_18px_45px_rgba(0,0,0,0.75)] mb-6 object-cover"
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          />
 
-          {/* mobile photo */}
-          <AnimatePresence initial={false}>
-            {gameState !== 'playing' && (
-              <motion.div
-                key="mobile-photo"
-                className="md:hidden relative w-16 h-16 rounded-lg overflow-hidden mb-5 ring-1 ring-white/10"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Image src="/images/me.jpg" alt="Roman Hatnančík" fill className="object-cover" priority />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* name */}
-          <AnimatePresence initial={false}>
-            {gameState !== 'playing' && (
-              <motion.div
-                key="hero-name"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -14 }}
-                transition={{ duration: 0.28 }}
-                className="w-full max-w-full"
-              >
-                <div ref={nameWrapRef} className="w-full max-w-full mb-2">
-                  <h1
-                    ref={nameRef}
-                    className={`font-bold text-white whitespace-nowrap transition-[font-size] duration-150 ${
-                      shrinkName ? 'text-3xl sm:text-4xl md:text-5xl' : 'text-4xl md:text-6xl'
-                    }`}
-                  >
-                    {name}
-                    {name.length < nameText.length && (
-                      <span className="ml-1 animate-pulse text-blue-400 font-bold">█</span>
-                    )}
-                  </h1>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* position + description — slide out during play */}
-          <AnimatePresence initial={false}>
-            {gameState !== 'playing' && (
-              <motion.div
-                key="hero-meta"
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -14 }}
-                transition={{ duration: 0.25 }}
-              >
-                <h2 className="text-lg md:text-xl text-sky-300/80 mb-5 font-mono min-h-[1.75rem]">
-                  {position}
-                  {position.length < positions[positionIndex].length && (
-                    <span className="ml-1 animate-pulse text-sky-300 font-bold">█</span>
-                  )}
-                </h2>
-
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* game status — appears only after the first hit */}
-          {gameState !== 'idle' && (
-          <div className="flex items-center gap-2 mb-6">
-            <span className={`text-xs font-mono ${gameState === 'playing' ? 'text-sky-300/70' : 'text-gray-500'}`}>
-              {gameState === 'playing' ? `${timeLeft}s`
-                : gameState === 'finished' ? (isSk ? 'kolo skončilo' : 'round finished')
-                : ''}
-            </span>
-            <span className="text-xs font-mono text-blue-300/70 ml-1">
-              {score} {isSk ? 'zásahov' : 'hits'}
-            </span>
-            <AnimatePresence>
-              {comboDisplay >= 2 && gameState === 'playing' && (
-                <motion.span
-                  key={comboDisplay}
-                  initial={{ opacity: 0, scale: 0.6, x: -4 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 4 }}
-                  transition={{ duration: 0.14 }}
-                  className="text-[10px] font-mono text-yellow-400 ml-1"
-                >
-                  ×{comboDisplay}
-                </motion.span>
+          <div ref={nameWrapRef} className="w-full max-w-full">
+            <h1
+              ref={nameRef}
+              className={`font-bold mb-2 text-white font-mono whitespace-nowrap transition-[font-size] duration-150 ${
+                shrinkName
+                  ? 'text-2xl sm:text-3xl md:text-5xl'
+                  : 'text-3xl md:text-5xl'
+              }`}
+            >
+              {name}
+              {name.length < nameText.length && (
+                <span className="ml-1 animate-pulse text-blue-400 font-bold">█</span>
               )}
-            </AnimatePresence>
+            </h1>
           </div>
+
+          <h2 className="text-lg md:text-2xl text-sky-300/90 mb-4 font-mono">
+            {position}
+            {position.length < positions[positionIndex].length && (
+              <span className="ml-1 animate-pulse text-sky-300 font-bold">█</span>
+            )}
+          </h2>
+
+          {showDescription && (
+            <motion.p
+              className="max-w-xl text-gray-300 leading-relaxed mb-6 text-sm md:text-base"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              {isSk
+                ? 'Stránka, na ktorej zhromažďujem svoju prácu aj menšie experimenty. Nájdeš tu prehľad vecí, na ktorých pracujem a ktoré postupne rozvíjam.'
+                : 'I build modern web apps with a focus on clean code, UX and visual details. And sometimes a tiny game right in the hero section.'}
+            </motion.p>
           )}
 
-          {/* buttons — fade out when playing */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs font-mono text-gray-400">
+              {isSk ? 'Kolo:' : 'Round:'}{' '}
+              {gameState === 'idle'
+                ? isSk
+                  ? 'Čaká na prvý zásah'
+                  : 'Waiting for first hit'
+                : gameState === 'playing'
+                ? isSk
+                  ? 'Prebieha'
+                  : 'Running'
+                : isSk
+                ? 'Skončené'
+                : 'Finished'}
+            </span>
+            <span className="px-3 py-1 rounded-full bg-black/70 border border-blue-500/50 text-xs font-mono text-blue-100">
+              {timeLeft}s
+            </span>
+          </div>
+
           <motion.div
-            className="pointer-events-auto flex flex-wrap gap-3 justify-center md:justify-start cursor-default"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: gameState === 'playing' ? 0 : 1, y: gameState === 'playing' ? 6 : 0 }}
-            transition={{ duration: 0.35 }}
-            style={{ pointerEvents: gameState === 'playing' ? 'none' : 'auto' }}
+            className="pointer-events-auto flex flex-wrap gap-4 justify-center md:justify-start cursor-default"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <button
-              onClick={() => goTo(1)}
-              className="px-6 py-2.5 rounded-md border border-white bg-white text-gray-950 text-sm font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+            <a
+              href="#projects"
+              className="px-6 md:px-7 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-sm md:text-base font-medium text-white shadow-lg shadow-blue-500/30 transition cursor-pointer"
             >
-              {isSk ? 'Moje projekty' : 'My work'}
-            </button>
-            <button
-              onClick={() => goTo(3)}
-              className="px-6 py-2.5 rounded-md border border-white/20 text-sm font-medium text-gray-300 hover:border-white/50 hover:text-white transition-colors cursor-pointer"
+              {isSk ? 'Pozrieť projekty' : 'View projects'}
+            </a>
+            <a
+              href="#contact"
+              className="px-6 md:px-7 py-3 rounded-full border border-white/20 hover:border-white/60 text-sm md:text-base font-medium text-gray-200 hover:bg-white/5 transition cursor-pointer"
             >
-              {isSk ? 'Kontaktujte ma' : 'Say hello'}
-            </button>
-            {gameState === 'finished' && (
+              {isSk ? 'Kontaktovať ma' : 'Contact me'}
+            </a>
+
+            {showLeaderboard && (
               <button
                 type="button"
                 onClick={() => setMobileLbOpen(true)}
-                className="md:hidden px-5 py-2.5 rounded-md border border-white/15 text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="md:hidden px-5 py-3 rounded-full border border-white/15 hover:border-white/40 text-sm font-medium text-gray-200 hover:bg-white/5 transition cursor-pointer"
               >
-                Leaderboard
+                {isSk ? 'Leaderboard' : 'Leaderboard'}
               </button>
             )}
           </motion.div>
         </div>
 
-        {/* right — photo (idle) or leaderboard (finished) */}
-        <AnimatePresence mode="wait">
-          {gameState === 'idle' && (
-            <motion.div
-              key="photo"
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.5 }}
-              className="hidden md:block"
-            >
-              <div className="relative h-44 w-44 rounded-xl overflow-hidden ring-1 ring-white/[0.08]">
-                <Image src="/images/me.jpg" alt="Roman Hatnančík" fill className="object-cover" priority />
-              </div>
-            </motion.div>
+        {/* right leaderboard (PC) */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={showLeaderboard ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
+          transition={{ duration: 0.4 }}
+          className={[
+            'hidden md:block cursor-default',
+            gameState === 'finished' ? 'pointer-events-auto' : 'pointer-events-none',
+          ].join(' ')}
+        >
+          {showLeaderboard ? (
+            <LeaderboardCard />
+          ) : (
+            <div className="text-xs text-gray-500 text-right pr-1 pointer-events-none">
+              {isSk
+                ? 'Tip: klikni na bublinu – spustíš mini hru a globálny leaderboard.'
+                : 'Tip: click a bubble to start the mini game and the global leaderboard.'}
+            </div>
           )}
-          {gameState === 'finished' && (
-            <motion.div
-              key="leaderboard"
-              initial={{ opacity: 0, x: 30, y: 10 }}
-              animate={{ opacity: 1, x: 0, y: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="hidden md:block cursor-default pointer-events-auto"
-            >
-              {renderLeaderboardCard()}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </motion.div>
       </div>
 
-      {/* mobile leaderboard overlay */}
-      {mobileLbOpen && gameState === 'finished' && (
+      {/* mobile overlay (len finished) */}
+      {showLeaderboard && mobileLbOpen && gameState === 'finished' && (
         <div
-          className="md:hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm p-4 flex items-center cursor-default"
+          className="md:hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm p-4 flex items-end cursor-default"
+          onClick={() => setMobileLbOpen(false)}
         >
           <div
             className="w-full max-w-xl mx-auto pointer-events-auto"
@@ -787,8 +684,21 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
             onPointerDown={(e) => e.stopPropagation()}
             onPointerDownCapture={(e) => e.stopPropagation()}
           >
-            <div className="max-h-[calc(100vh-5rem)] overflow-y-auto rounded-xl">
-              {renderLeaderboardCard(true)}
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="text-xs text-gray-300">
+                {isSk ? 'Leaderboard' : 'Leaderboard'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileLbOpen(false)}
+                className="text-xs text-gray-300 hover:text-white transition cursor-pointer"
+              >
+                {isSk ? 'Zavrieť' : 'Close'}
+              </button>
+            </div>
+
+            <div className="rounded-3xl overflow-hidden">
+              <LeaderboardCard compact />
             </div>
           </div>
         </div>
@@ -796,26 +706,31 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
 
       <style jsx>{`
         @keyframes moveBubble {
-          to { transform: translateY(-100vh); }
+          to {
+            transform: translateY(-100vh);
+          }
         }
+
+        @keyframes popRing {
+          0% {
+            transform: scale(0.6);
+            opacity: 0.9;
+          }
+          100% {
+            transform: scale(1.9);
+            opacity: 0;
+          }
+        }
+
         .bubble {
           animation-timing-function: linear;
           animation-fill-mode: forwards;
         }
-        :global(.leaderboard-scroll) {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
-        }
-        :global(.leaderboard-scroll::-webkit-scrollbar) {
-          display: block;
-          width: 4px;
-        }
-        :global(.leaderboard-scroll::-webkit-scrollbar-track) {
-          background: transparent;
-        }
-        :global(.leaderboard-scroll::-webkit-scrollbar-thumb) {
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.22);
+
+        .pop-ring {
+          border: 2px solid rgba(56, 189, 248, 0.9);
+          background: radial-gradient(circle, rgba(56, 189, 248, 0.35), transparent 65%);
+          animation: popRing 0.22s ease-out forwards;
         }
       `}</style>
     </section>
