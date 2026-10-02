@@ -42,9 +42,16 @@ const movingLogos = [
   { src: '/images/FNTN.png', alt: 'Fakultná nemocnica Trenčín', left: '11%', width: 148, height: 68, duration: 10.6, delay: -3.8, drift: '58px', treatment: 'mono' },
 ]
 
-function LogoMotion() {
+function LogoMotion({ fadeAtBottom = false }: { fadeAtBottom?: boolean }) {
   return (
-    <div aria-hidden="true" className="relative h-full w-full overflow-hidden">
+    <div
+      aria-hidden="true"
+      className="relative h-full w-full overflow-hidden"
+      style={fadeAtBottom ? {
+        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 68%, transparent 100%)',
+        maskImage: 'linear-gradient(to bottom, black 0%, black 68%, transparent 100%)',
+      } : undefined}
+    >
       {movingLogos.map((logo, index) => (
         <div
           key={logo.src}
@@ -126,7 +133,7 @@ export default function Skills() {
             {isSk ? 'Skúsenosti' : 'Experience'}
           </h2>
           <div className="h-48">
-            <LogoMotion />
+            <LogoMotion fadeAtBottom />
           </div>
           <div className="mt-5 space-y-8">
             {jobs.map((job, index) => (

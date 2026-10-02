@@ -15,6 +15,8 @@ type Project = {
   demo: string
   isDemoAvailable: boolean
   format: 'landscape' | 'portrait' | 'square'
+  imageWidth: number
+  imageHeight: number
 }
 
 const projectTransition = {
@@ -42,22 +44,22 @@ export default function Projects() {
     {
       title: { sk: 'OZ Hľadáme Dronom', en: 'OZ Hľadáme Dronom' },
       description: { sk: 'Webová prezentácia občianskeho združenia Hľadáme Dronom. Na jednom mieste približuje jeho príbeh, tím aj pomoc pri pátraní po nezvestných zvieratách a ochrane srnčej zveri pred kosbou.', en: 'The website of the Hľadáme Dronom civic association. It brings together its story, team and work helping to find missing animals and protect young deer before fields are mown.' },
-      image: '/images/hladame-dronom.webp', demo: 'https://hladamedronom.sk/', isDemoAvailable: true, format: 'landscape',
+      image: '/images/hladame-dronom.webp', demo: 'https://hladamedronom.sk/', isDemoAvailable: true, format: 'landscape', imageWidth: 1919, imageHeight: 1079,
     },
     {
       title: { sk: 'Hľadáme Dronom – aplikácia', en: 'Hľadáme Dronom – app' },
       description: { sk: 'Aplikácia pre pilotov, koordinátorov a dobrovoľníkov na jednoduchšiu koordináciu a efektívnejšiu prácu pri pátracích akciách. Momentálne je v review pre Google Play a App Store.', en: 'An app for pilots, coordinators and volunteers that makes coordination and search operations more efficient. It is currently in review for Google Play and the App Store.' },
-      image: '/images/aplikacia.jpg', images: ['/images/aplikacia.jpg', '/images/apk2.jpg'], demo: '', isDemoAvailable: false, format: 'portrait',
+      image: '/images/aplikacia.jpg', images: ['/images/aplikacia.jpg', '/images/apk2.jpg'], demo: '', isDemoAvailable: false, format: 'portrait', imageWidth: 1080, imageHeight: 2400,
     },
     {
       title: { sk: 'FRIO – Next.js Blog', en: 'FRIO – Next.js Blog' },
       description: { sk: 'Blog v Next.js a Tailwind CSS s prihlasovaním, diskusiami a dynamickými článkami.', en: 'A Next.js and Tailwind CSS blog with authentication, discussions and dynamic articles.' },
-      image: '/images/frio-mockup.png', github: 'https://github.com/crookedr/frioblog', demo: '', isDemoAvailable: false, format: 'landscape',
+      image: '/images/frio-mockup.png', github: 'https://github.com/crookedr/frioblog', demo: '', isDemoAvailable: false, format: 'landscape', imageWidth: 1979, imageHeight: 1219,
     },
     {
       title: { sk: 'SmoothUp – CS2 app', en: 'SmoothUp – CS2 app' },
       description: { sk: 'Desktop aplikácia na optimalizáciu výkonu v Counter-Strike 2.', en: 'A desktop app for optimizing performance in Counter-Strike 2.' },
-      image: '/images/smoothuplogo.png', demo: '', isDemoAvailable: false, format: 'square',
+      image: '/images/smoothuplogo.png', demo: '', isDemoAvailable: false, format: 'square', imageWidth: 500, imageHeight: 500,
     },
   ], [])
 
@@ -121,10 +123,8 @@ export default function Projects() {
                 initial={reduceMotion ? false : { scale: 0.965 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: reduceMotion ? 0 : 0.72, ease: [0.22, 1, 0.36, 1] }}
-                className={`relative flex w-full items-center justify-center overflow-hidden bg-black/20 ${
-                  project.format === 'portrait'
-                    ? 'h-[420px] md:h-[520px]'
-                    : 'aspect-[16/10] max-h-[62vh] min-h-[260px] md:aspect-[16/8.5]'
+                className={`relative flex w-full items-center justify-center ${
+                  project.images ? 'h-[420px] md:h-[520px]' : ''
                 }`}
               >
                 {project.images ? (
@@ -164,7 +164,13 @@ export default function Projects() {
                       repeat: Infinity,
                       ease: 'easeInOut',
                     }}
-                    className={project.format === 'portrait' ? 'relative h-[82%] aspect-[9/20]' : project.format === 'square' ? 'relative h-[68%] aspect-square' : 'relative h-full w-full'}
+                    className="relative w-full"
+                    style={{
+                      aspectRatio: `${project.imageWidth} / ${project.imageHeight}`,
+                      maxWidth: project.format === 'square'
+                        ? '52vh'
+                        : `calc(58vh * ${project.imageWidth / project.imageHeight})`,
+                    }}
                   >
                     <Image
                       src={project.image}

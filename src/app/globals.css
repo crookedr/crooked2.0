@@ -1,5 +1,46 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "LT Superior";
+  src: url("/fonts/lt-superior/LTSuperior-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LT Superior";
+  src: url("/fonts/lt-superior/LTSuperior-Medium.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LT Superior";
+  src: url("/fonts/lt-superior/LTSuperior-SemiBold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LT Superior";
+  src: url("/fonts/lt-superior/LTSuperior-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: "LT Superior", ui-sans-serif, sans-serif;
+  --font-mono: "LT Superior", ui-sans-serif, sans-serif;
+}
+
+body {
+  font-family: "LT Superior", ui-sans-serif, sans-serif;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -18,4 +59,11 @@ html.hero-cursor-hidden *,
 .hero-crosshair-active,
 .hero-crosshair-active * {
   cursor: none !important;
+}
+
+.site-header button,
+.site-header a,
+html.hero-cursor-hidden .site-header button,
+html.hero-cursor-hidden .site-header a {
+  cursor: pointer !important;
 }
