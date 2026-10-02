@@ -1,249 +1,196 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import Image from 'next/image'
+import type { CSSProperties } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useLanguage } from '../context/language-context'
 
-type SkillGroup = 'core' | 'workflow' | 'creative'
-
-type Skill = {
-  name: string
-  icon: string
-  group: SkillGroup
-}
-
-const skills: Skill[] = [
-  { name: 'TypeScript', icon: '/icons/typescript.svg', group: 'core' },
-  { name: 'React', icon: '/icons/react.svg', group: 'core' },
-  { name: 'Next.js', icon: '/icons/nextjs.svg', group: 'core' },
-  { name: 'Tailwind CSS', icon: '/icons/tailwind.svg', group: 'core' },
-  { name: 'JavaScript', icon: '/icons/javascript.svg', group: 'core' },
-
-  { name: 'Git', icon: '/icons/git.svg', group: 'workflow' },
-  { name: 'MySQL', icon: '/icons/mysql.svg', group: 'workflow' },
-
-  { name: 'ChatGPT', icon: '/icons/openai.svg', group: 'creative' },
-  { name: 'DaVinci Resolve', icon: '/icons/davinciresolve.svg', group: 'creative' },
+const jobs = [
+  {
+    periodSk: '2025 – dnes',
+    periodEn: '2025 – present',
+    roleSk: 'IT Support & Software Tester',
+    roleEn: 'IT Support & Software Tester',
+    company: 'TSS Group',
+  },
+  {
+    periodSk: '2022',
+    periodEn: '2022',
+    roleSk: 'IT System Administrator',
+    roleEn: 'IT System Administrator',
+    company: 'LEONI',
+  },
+  {
+    periodSk: '2021 – 2022',
+    periodEn: '2021 – 2022',
+    roleSk: 'IT Technician',
+    roleEn: 'IT Technician',
+    company: 'PJG',
+  },
+  {
+    periodSk: '2020 – 2021',
+    periodEn: '2020 – 2021',
+    roleSk: 'Triáž',
+    roleEn: 'Triage',
+    company: 'Fakultná nemocnica Trenčín',
+  },
 ]
 
-function groupTitle(group: SkillGroup, isSk: boolean) {
-  if (group === 'core') return isSk ? 'Core frontend stack' : 'Core frontend stack'
-  if (group === 'workflow') return isSk ? 'Workflow okolo projektu' : 'Project workflow'
-  return isSk ? 'Vizualita & AI' : 'Visuals & AI'
-}
+const movingLogos = [
+  { src: '/images/TSS.png', alt: 'TSS Group', left: '4%', width: 82, height: 82, duration: 8.2, delay: -1.4, drift: '38px', treatment: 'tss' },
+  { src: '/images/LEONI.webp', alt: 'LEONI', left: '38%', width: 136, height: 58, duration: 9.4, delay: -6.2, drift: '-30px', treatment: 'mono' },
+  { src: '/images/FNTN.png', alt: 'Fakultná nemocnica Trenčín', left: '11%', width: 148, height: 68, duration: 10.6, delay: -3.8, drift: '58px', treatment: 'mono' },
+]
 
-function groupDesc(group: SkillGroup, isSk: boolean) {
-  if (group === 'core') {
-    return isSk
-      ? 'Technológie, v ktorých trávim najviac času pri tvorbe rozhraní a logiky.'
-      : 'Technologies I spend most of my time in when building UI and logic.'
-  }
-  if (group === 'workflow') {
-    return isSk
-      ? 'Nástroje, ktoré držia projekt pokope – história, dáta a nasadenie.'
-      : 'Tools that keep the project together – history, data and deployment.'
-  }
-  return isSk
-    ? 'Doplnky, ktoré riešia vizuál, pohyb alebo nápady okolo projektu.'
-    : 'Extras for visuals, motion and ideas around a project.'
-}
-
-function SkillPill({ skill }: { skill: Skill }) {
+function LogoMotion() {
   return (
-    <motion.div
-      whileHover={{ y: -2, scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-gray-900/80 px-3 py-1.5 text-xs text-gray-100 shadow-[0_0_0_1px_rgba(15,23,42,0.9)] hover:border-sky-400/70 hover:bg-gray-900 transition-all"
-    >
-      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-black/80">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={skill.icon}
-          alt={skill.name}
-          className="h-3.5 w-3.5 invert opacity-90"
-        />
-      </div>
-      <span className="whitespace-nowrap">{skill.name}</span>
-    </motion.div>
+    <div aria-hidden="true" className="relative h-full w-full overflow-hidden">
+      {movingLogos.map((logo, index) => (
+        <div
+          key={logo.src}
+          className="experience-logo absolute top-0 flex items-center justify-center opacity-40"
+          style={{
+            left: logo.left,
+            width: `${logo.width}px`,
+            height: `${logo.height}px`,
+            animationDuration: `${logo.duration}s`,
+            animationDelay: `${logo.delay}s`,
+            animationDirection: index % 2 === 0 ? 'normal' : 'reverse',
+            '--logo-drift': logo.drift,
+          } as CSSProperties}
+        >
+          <div className="relative h-full w-full">
+            <Image
+              src={logo.src}
+              alt={logo.alt}
+              fill
+              sizes={`${logo.width}px`}
+              className={`object-contain ${logo.treatment === 'tss' ? 'logo-tss' : 'logo-mono'}`}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
 export default function Skills() {
   const { language } = useLanguage()
   const isSk = language === 'sk'
-
-  const groups: SkillGroup[] = ['core', 'workflow', 'creative']
+  const reduceMotion = useReducedMotion()
 
   return (
     <section
       id="skills"
-      className="scroll-mt-24 w-full bg-gray-950 py-24 px-6"
+      className="flex min-h-screen w-full items-center overflow-hidden bg-gray-950 px-6 py-24 md:px-8"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-12 lg:flex-row lg:items-start lg:gap-16">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.45 }}
-          className="max-w-xl space-y-6"
-        >
-          <p className="text-[11px] uppercase tracking-[0.35em] text-sky-300/80">
-            {isSk ? 'Skills & tools' : 'Skills & tools'}
-          </p>
-
-          <div className="space-y-3">
-            <h2 className="text-3xl font-semibold md:text-4xl text-white">
-              {isSk
-                ? 'Technológie, s ktorými reálne pracujem'
-                : 'Technologies I actually work with'}
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto w-full max-w-6xl"
+      >
+        <div className="hidden items-center gap-14 md:grid md:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)] lg:gap-24">
+          <div className="flex h-[510px] flex-col">
+            <h2 className="text-3xl font-semibold text-white md:text-4xl">
+              {isSk ? 'Skúsenosti' : 'Experience'}
             </h2>
-            <p className="text-sm text-gray-300 md:text-base">
-              {isSk
-                ? 'Nejde mi o kvantitu. Skôr o to, aby nástroje, ktoré používam, dávali zmysel v praxi a pomáhali mi robiť veci poriadne.'
-                : 'I’m not focused on quantity. I care more about using tools that make sense in practice and help me build things properly.'}
-            </p>
+            <div className="mt-8 min-h-0 flex-1">
+              <LogoMotion />
+            </div>
           </div>
 
-          <div className="space-y-3 pt-2 text-xs text-gray-300">
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.6 }}
-              transition={{ duration: 0.35, delay: 0.05 }}
-              className="flex items-center gap-3"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/60 bg-gray-900 text-[11px] font-mono text-sky-100">
-                01
-              </span>
-              <p>
-                {isSk
-                  ? 'Frontend beriem vážne – nestačí, aby to fungovalo, musí to pôsobiť prirodzene pri používaní.'
-                  : 'I care about frontend – it’s not enough that it works, it should feel natural to use.'}
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.6 }}
-              transition={{ duration: 0.35, delay: 0.12 }}
-              className="flex items-center gap-3"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/60 bg-gray-900 text-[11px] font-mono text-sky-100">
-                02
-              </span>
-              <p>
-                {isSk
-                  ? 'TypeScript používam kvôli prehľadnosti a dlhodobej udržateľnosti projektov.'
-                  : 'I use TypeScript for clarity and to keep projects maintainable over time.'}
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.6 }}
-              transition={{ duration: 0.35, delay: 0.19 }}
-              className="flex items-center gap-3"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/60 bg-gray-900 text-[11px] font-mono text-sky-100">
-                03
-              </span>
-              <p>
-                {isSk
-                  ? 'AI a vizuálne nástroje beriem ako doplnok – spôsob, ako projekt posunúť o kúsok ďalej.'
-                  : 'I treat AI and visual tools as an addition – not a shortcut, but a way to push a project a bit further.'}
-              </p>
-            </motion.div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="relative mt-6 overflow-hidden rounded-full border border-white/10 bg-gradient-to-r from-sky-500/10 via-transparent to-blue-500/10"
-          >
-            <motion.div
-              aria-hidden="true"
-              animate={{ x: ['0%', '-50%'] }}
-              transition={{ repeat: Infinity, duration: 26, ease: 'linear' }}
-              className="flex min-w-max gap-6 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-gray-300"
-            >
-              {Array.from({ length: 2 }).map((_, loopIndex) => (
-                <span key={loopIndex} className="flex items-center gap-6">
-                  <span>React</span>
-                  <span className="h-[1px] w-10 bg-sky-500/60" />
-                  <span>Next.js</span>
-                  <span className="h-[1px] w-10 bg-sky-500/60" />
-                  <span>TypeScript</span>
-                  <span className="h-[1px] w-10 bg-sky-500/60" />
-                  <span>Tailwind</span>
-                  <span className="h-[1px] w-10 bg-sky-500/60" />
-                  <span>Git workflow</span>
-                  <span className="h-[1px] w-10 bg-sky-500/60" />
-                  <span>MySQL</span>
-                  <span className="h-[1px] w-10 bg-sky-500/60" />
-                  <span>ChatGPT</span>
-                  <span className="h-[1px] w-10 bg-sky-500/60" />
-                  <span>DaVinci Resolve</span>
-                </span>
-              ))}
-            </motion.div>
-          </motion.div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.45 }}
-          className="relative flex-1 space-y-5"
-        >
-          <div className="pb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-gray-400">
-            {isSk ? 'Prehľad stacku podľa oblasti' : 'Stack overview by area'}
-          </div>
-
-          {groups.map((group, groupIndex) => {
-            const groupSkills = skills.filter((s) => s.group === group)
-            const title = groupTitle(group, isSk)
-            const desc = groupDesc(group, isSk)
-
-            return (
-              <motion.div
-                key={group}
-                initial={{ opacity: 0, y: 14 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.35, delay: groupIndex * 0.09 }}
-                className="relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/80 px-4 py-4 sm:px-5 sm:py-5"
+          <div className="flex min-h-[510px] flex-col justify-center gap-7 lg:gap-8">
+            {jobs.map((job, index) => (
+              <div
+                key={job.company}
+                className={`group transition-transform duration-300 hover:translate-x-1.5 ${
+                  index === 0
+                    ? 'ml-[28%]'
+                    : index === 1
+                      ? 'ml-[18%]'
+                      : index === 2
+                        ? 'ml-[9%]'
+                        : 'ml-0'
+                }`}
               >
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-400 via-blue-500 to-sky-400" />
+                <ExperienceText job={job} isSk={isSk} current={index === 0} />
+              </div>
+            ))}
+          </div>
+        </div>
 
-                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                  <h3 className="text-sm font-semibold text-white">
-                    {title}
-                  </h3>
-                  <p className="text-[11px] text-gray-400 sm:max-w-xs sm:text-right">
-                    {desc}
-                  </p>
-                </div>
+        <div className="md:hidden">
+          <h2 className="text-3xl font-semibold text-white">
+            {isSk ? 'Skúsenosti' : 'Experience'}
+          </h2>
+          <div className="h-48">
+            <LogoMotion />
+          </div>
+          <div className="mt-5 space-y-8">
+            {jobs.map((job, index) => (
+              <div key={job.company} className={index === 0 ? 'text-white' : 'text-gray-300'}>
+                <ExperienceText job={job} isSk={isSk} current={index === 0} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
 
-                <div className="flex flex-wrap gap-2.5 pt-1">
-                  {groupSkills.map((skill) => (
-                    <SkillPill key={skill.name} skill={skill} />
-                  ))}
-                </div>
-              </motion.div>
-            )
-          })}
+      <style jsx global>{`
+        @keyframes logo-float {
+          0% { transform: translate3d(0, 8px, 0) rotate(-3deg); }
+          25% { transform: translate3d(var(--logo-drift), 62px, 0) rotate(2deg); }
+          50% { transform: translate3d(8px, 148px, 0) rotate(4deg); }
+          75% { transform: translate3d(var(--logo-drift), 78px, 0) rotate(-2deg); }
+          100% { transform: translate3d(0, 8px, 0) rotate(-3deg); }
+        }
 
-          <p className="mt-3 text-[11px] text-gray-500">
-            {isSk
-              ? 'Je to skôr mapa technológií, ktoré používam najčastejšie, než formálne „skill levely“.'
-              : 'This is more of a map of the tools I use most often than a formal “skill level” list.'}
-          </p>
-        </motion.div>
-      </div>
+        .experience-logo {
+          animation-name: logo-float;
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+          will-change: transform;
+        }
+
+        .logo-mono {
+          filter: brightness(0) invert(1);
+        }
+
+        .logo-tss {
+          filter: invert(1) grayscale(1) contrast(8);
+          mix-blend-mode: screen;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .experience-logo { animation: none; }
+        }
+      `}</style>
     </section>
+  )
+}
+
+function ExperienceText({
+  job,
+  isSk,
+  current = false,
+}: {
+  job: (typeof jobs)[number]
+  isSk: boolean
+  current?: boolean
+}) {
+  return (
+    <div>
+      <p className="text-sm leading-6 text-gray-600">
+        {isSk ? job.periodSk : job.periodEn}
+      </p>
+      <h3 className={`${current ? 'mt-1 text-3xl md:text-[2.6rem]' : 'mt-1 text-2xl md:text-[1.7rem]'} font-medium leading-tight tracking-[-0.025em] text-white`}>
+        {job.company}
+      </h3>
+      <p className="mt-1.5 text-sm leading-6 text-gray-500 md:text-base">
+        {isSk ? job.roleSk : job.roleEn}
+      </p>
+    </div>
   )
 }

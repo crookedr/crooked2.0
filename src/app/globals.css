@@ -4,13 +4,18 @@ html {
   scroll-behavior: smooth;
 }
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
+*::-webkit-scrollbar {
   display: none;
 }
 
-html,
-body {
-  -ms-overflow-style: none; 
+* {
+  -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+html.hero-cursor-hidden,
+html.hero-cursor-hidden *,
+.hero-crosshair-active,
+.hero-crosshair-active * {
+  cursor: none !important;
 }
