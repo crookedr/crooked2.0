@@ -89,7 +89,7 @@ export default function Skills() {
   return (
     <section
       id="skills"
-      className="flex min-h-screen w-full items-center overflow-hidden bg-gray-950 px-6 py-24 md:px-8"
+      className="flex h-[100dvh] min-h-0 w-full items-center overflow-hidden bg-gray-950 px-6 pb-4 pt-20 md:min-h-screen md:h-auto md:px-8 md:py-24"
     >
       <motion.div
         initial={reduceMotion ? false : { opacity: 0, y: 16 }}
@@ -132,10 +132,10 @@ export default function Skills() {
           <h2 className="text-3xl font-semibold text-white">
             {isSk ? 'Skúsenosti' : 'Experience'}
           </h2>
-          <div className="h-48">
+          <div className="h-[clamp(6rem,17dvh,9rem)]">
             <LogoMotion fadeAtBottom />
           </div>
-          <div className="mt-5 space-y-8">
+          <div className="mt-2 space-y-2">
             {jobs.map((job, index) => (
               <div key={job.company} className={index === 0 ? 'text-white' : 'text-gray-300'}>
                 <ExperienceText job={job} isSk={isSk} current={index === 0} />
@@ -189,13 +189,13 @@ function ExperienceText({
 }) {
   return (
     <div>
-      <p className="text-sm leading-6 text-gray-600">
+      <p className="text-xs leading-4 text-gray-600 md:text-sm md:leading-6">
         {isSk ? job.periodSk : job.periodEn}
       </p>
-      <h3 className={`${current ? 'mt-1 text-3xl md:text-[2.6rem]' : 'mt-1 text-2xl md:text-[1.7rem]'} font-medium leading-tight tracking-[-0.025em] text-white`}>
+      <h3 className={`${current ? 'mt-1 text-2xl md:text-[2.6rem]' : 'mt-1 text-xl md:text-[1.7rem]'} font-medium leading-tight tracking-[-0.025em] text-white`}>
         {job.company}
       </h3>
-      <p className="mt-1.5 text-sm leading-6 text-gray-500 md:text-base">
+      <p className="mt-1 text-xs leading-4 text-gray-500 md:mt-1.5 md:text-base md:leading-6">
         {isSk ? job.roleSk : job.roleEn}
       </p>
     </div>

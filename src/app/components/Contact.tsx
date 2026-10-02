@@ -43,14 +43,14 @@ export default function Contact() {
   return (
     <section
       id="contact"
-      className="flex min-h-screen w-full items-center bg-gray-950 px-6 py-24 md:px-8"
+      className="flex h-[100dvh] min-h-0 w-full items-center overflow-hidden bg-gray-950 px-5 pb-4 pt-20 md:min-h-screen md:h-auto md:px-8 md:py-24"
     >
       <motion.div
         initial={reduceMotion ? false : { opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.25 }}
         transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-auto grid w-full max-w-6xl gap-14 md:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)] md:gap-20 lg:gap-28"
+        className="mx-auto grid w-full max-w-6xl gap-5 md:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)] md:gap-20 lg:gap-28"
       >
         <div>
           <h2 className="text-3xl font-semibold text-white md:text-4xl">
@@ -59,12 +59,12 @@ export default function Contact() {
 
           <a
             href="mailto:hatnancikroman@gmail.com"
-            className="mt-9 block max-w-max text-lg text-gray-300 underline decoration-white/20 underline-offset-8 transition-colors hover:text-white md:text-xl"
+            className="mt-4 block max-w-max text-base text-gray-300 underline decoration-white/20 underline-offset-8 transition-colors hover:text-white md:mt-9 md:text-xl"
           >
             hatnancikroman@gmail.com
           </a>
 
-          <div className="mt-10 flex items-center gap-5 text-xl text-gray-500">
+          <div className="mt-5 flex items-center gap-5 text-xl text-gray-500 md:mt-10">
             <a href="https://github.com/crookedr" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white" aria-label="GitHub">
               <FaGithub />
             </a>
@@ -80,7 +80,7 @@ export default function Contact() {
           </div>
         </div>
 
-        <div className="min-h-[430px]">
+        <div className="min-h-0 md:min-h-[430px]">
           <AnimatePresence mode="wait" initial={false}>
             {status === 'success' ? (
               <SuccessAnimation
@@ -98,7 +98,7 @@ export default function Contact() {
                 exit={{ opacity: 0, y: -18, scale: 0.98 }}
                 transition={{ duration: reduceMotion ? 0 : 0.3 }}
               >
-                <div className="grid gap-8 sm:grid-cols-2 sm:gap-x-8">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:gap-x-8 md:gap-y-8">
                   <label className="block">
                     <span className="mb-3 block text-sm text-gray-500">{isSk ? 'Vaše Meno' : 'Your Name'}</span>
                     <input type="text" name="name" required autoComplete="name" className={fieldClass} />
@@ -109,13 +109,13 @@ export default function Contact() {
                     <input type="email" name="email" required autoComplete="email" className={fieldClass} />
                   </label>
 
-                  <label className="block sm:col-span-2">
+                  <label className="col-span-2 block">
                     <span className="mb-3 block text-sm text-gray-500">{isSk ? 'Správa' : 'Message'}</span>
-                    <textarea name="message" rows={5} required className={`${fieldClass} resize-none`} />
+                    <textarea name="message" rows={3} required className={`${fieldClass} resize-none md:min-h-32`} />
                   </label>
                 </div>
 
-                <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 md:mt-8">
                   <button
                     type="submit"
                     disabled={status === 'sending'}
@@ -133,7 +133,7 @@ export default function Contact() {
                   )}
                 </div>
 
-                <p className="mt-9 max-w-lg text-xs leading-5 text-gray-700">
+                <p className="mt-5 max-w-lg text-[10px] leading-4 text-gray-700 md:mt-9 md:text-xs md:leading-5">
                   {isSk ? 'Odoslaním formulára súhlasíte so spracovaním údajov podľa ' : 'By submitting this form, you agree to the processing of your data under the '}
                   <a href="/gdpr" className="underline underline-offset-2 transition-colors hover:text-gray-400">
                     {isSk ? 'zásad ochrany osobných údajov' : 'privacy policy'}

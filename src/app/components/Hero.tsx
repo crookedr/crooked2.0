@@ -49,6 +49,7 @@ export default function Hero() {
   // crosshair
   const [crosshairPos, setCrosshairPos] = useState({ x: -200, y: -200 })
   const [crosshairVisible, setCrosshairVisible] = useState(false)
+  const [hasFinePointer, setHasFinePointer] = useState(false)
 
   // combo – use ref for always-current value, state for display
   const comboRef = useRef(0)
@@ -75,10 +76,18 @@ export default function Hero() {
   const [mobileLbOpen, setMobileLbOpen] = useState(false)
 
   useEffect(() => {
-    const shouldHide = crosshairVisible && gameState !== 'finished'
+    const shouldHide = hasFinePointer && crosshairVisible && gameState !== 'finished'
     document.documentElement.classList.toggle('hero-cursor-hidden', shouldHide)
     return () => document.documentElement.classList.remove('hero-cursor-hidden')
-  }, [crosshairVisible, gameState])
+  }, [crosshairVisible, gameState, hasFinePointer])
+
+  useEffect(() => {
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const updatePointerType = () => setHasFinePointer(query.matches)
+    updatePointerType()
+    query.addEventListener('change', updatePointerType)
+    return () => query.removeEventListener('change', updatePointerType)
+  }, [])
 
   const [pops, setPops] = useState<{ id: number; x: number; y: number; size: number }[]>([])
 
@@ -203,6 +212,7 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
   useEffect(() => {
     if (gameState !== 'finished') return
     setMobileLbOpen(true)
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
     const t = window.setTimeout(() => nameInputRef.current?.focus(), 0)
     return () => window.clearTimeout(t)
   }, [gameState])
@@ -310,14 +320,14 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
   )
 
   const onHeroPointerDownCapture = (e: React.PointerEvent<HTMLElement>) => {
-    if (gameState === 'finished') return
+    if (gameState === 'finished' || e.pointerType !== 'mouse') return
     tryHitAt(e.clientX, e.clientY)
   }
 
   const onHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    if (gameState === 'finished') return
+    if (!hasFinePointer || gameState === 'finished') return
     setCrosshairPos({ x: e.clientX, y: e.clientY })
-  }, [gameState])
+  }, [gameState, hasFinePointer])
 
   const basePlayers: DbScore[] = [
     { id: 'ghost', name: 'Ghost Dev', score: 12, created_at: '' },
@@ -492,7 +502,7 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
     <section
       ref={heroRef}
       id="hero"
-      className={`min-h-screen flex items-center px-6 relative overflow-hidden bg-gray-950 ${gameState === 'finished' ? 'cursor-default' : 'hero-crosshair-active cursor-none'}`}
+      className={`h-[100dvh] min-h-0 flex items-center px-6 relative overflow-hidden bg-gray-950 ${gameState === 'finished' || !hasFinePointer ? 'cursor-default' : 'hero-crosshair-active cursor-none'}`}
       onPointerDownCapture={onHeroPointerDownCapture}
       onMouseMove={onHeroMouseMove}
       onMouseEnter={() => setCrosshairVisible(true)}
@@ -515,7 +525,7 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
       )}
 
       {/* custom crosshair — CS style */}
-      {gameState !== 'finished' && crosshairVisible && (
+      {hasFinePointer && gameState !== 'finished' && crosshairVisible && (
         <svg
           width="40" height="40" viewBox="-20 -20 40 40"
           className="pointer-events-none fixed z-[70]"
@@ -589,6 +599,17 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
           <div
             key={bubble.key}
             className="bubble"
+            onPointerDown={(event) => {
+              if (hasFinePointer) return
+              event.stopPropagation()
+              const rect = event.currentTarget.getBoundingClientRect()
+              popBubbleByKey(
+                bubble.key,
+                rect.left + rect.width / 2,
+                rect.top + rect.height / 2,
+                bubble.size,
+              )
+            }}
             style={{
               width: bubble.size,
               height: bubble.size,
@@ -605,6 +626,8 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
               animationDuration: `${bubble.duration}s`,
               animationTimingFunction: 'linear',
               animationFillMode: 'forwards',
+              pointerEvents: hasFinePointer ? 'none' : 'auto',
+              touchAction: 'manipulation',
             }}
           />
         ))}
@@ -674,7 +697,7 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
                 exit={{ opacity: 0, y: -14 }}
                 transition={{ duration: 0.25 }}
               >
-                <h2 className="text-lg md:text-xl text-sky-300/80 mb-5 font-mono min-h-[1.75rem]">
+                <h2 className="mb-5 min-h-[1.75rem] whitespace-nowrap text-[clamp(0.68rem,3.2vw,1.125rem)] font-mono tracking-[-0.02em] text-sky-300/80 md:text-xl">
                   {position}
                   {position.length < positions[positionIndex].length && (
                     <span className="ml-1 animate-pulse text-sky-300 font-bold">█</span>
@@ -779,7 +802,7 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
       {/* mobile leaderboard overlay */}
       {mobileLbOpen && gameState === 'finished' && (
         <div
-          className="md:hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm p-4 flex items-center cursor-default"
+          className="md:hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm p-3 flex items-center cursor-default"
         >
           <div
             className="w-full max-w-xl mx-auto pointer-events-auto"
@@ -787,7 +810,7 @@ typeNextTimeoutRef.current = window.setTimeout(() => {
             onPointerDown={(e) => e.stopPropagation()}
             onPointerDownCapture={(e) => e.stopPropagation()}
           >
-            <div className="max-h-[calc(100vh-5rem)] overflow-y-auto rounded-xl">
+            <div className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-xl">
               {renderLeaderboardCard(true)}
             </div>
           </div>

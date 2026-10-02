@@ -96,10 +96,10 @@ export default function Projects() {
       tabIndex={0}
       aria-roledescription="carousel"
       aria-label={lang === 'sk' ? 'Projekty' : 'Projects'}
-      className="min-h-screen w-full overflow-hidden bg-gray-950 px-5 py-20 outline-none md:px-8"
+      className="h-[100dvh] min-h-0 w-full overflow-hidden bg-gray-950 px-5 pb-4 pt-20 outline-none md:min-h-screen md:h-auto md:px-8 md:py-20"
     >
-      <div className="mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-6xl flex-col justify-center">
-        <h2 className="mb-8 text-3xl font-semibold text-white md:mb-10 md:text-4xl">{lang === 'sk' ? 'Projekty' : 'Projects'}</h2>
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col justify-center md:min-h-[calc(100vh-10rem)]">
+        <h2 className="mb-3 text-2xl font-semibold text-white md:mb-10 md:text-4xl">{lang === 'sk' ? 'Projekty' : 'Projects'}</h2>
 
         <div className="relative">
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
@@ -124,7 +124,7 @@ export default function Projects() {
                 animate={{ scale: 1 }}
                 transition={{ duration: reduceMotion ? 0 : 0.72, ease: [0.22, 1, 0.36, 1] }}
                 className={`relative flex w-full items-center justify-center ${
-                  project.images ? 'h-[420px] md:h-[520px]' : ''
+                  project.images ? 'h-[250px] min-[700px]:h-[320px] md:h-[520px]' : ''
                 }`}
               >
                 {project.images ? (
@@ -164,7 +164,7 @@ export default function Projects() {
                       repeat: Infinity,
                       ease: 'easeInOut',
                     }}
-                    className="relative w-full"
+                    className="relative max-h-[42dvh] w-full md:max-h-[58vh]"
                     style={{
                       aspectRatio: `${project.imageWidth} / ${project.imageHeight}`,
                       maxWidth: project.format === 'square'
@@ -188,10 +188,10 @@ export default function Projects() {
                 initial={reduceMotion ? false : { opacity: 0, x: direction > 0 ? 28 : -28 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: reduceMotion ? 0 : 0.42, delay: reduceMotion ? 0 : 0.16, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-6 grid gap-4 md:grid-cols-[minmax(0,0.75fr)_minmax(18rem,1fr)] md:gap-12"
+                className="mt-4 grid gap-2 md:mt-6 md:grid-cols-[minmax(0,0.75fr)_minmax(18rem,1fr)] md:gap-12"
               >
                 <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-                  <h3 className="text-xl font-medium leading-snug text-white md:text-2xl">{project.title[lang]}</h3>
+                  <h3 className="text-lg font-medium leading-snug text-white md:text-2xl">{project.title[lang]}</h3>
                   {project.isDemoAvailable && (
                     <a href={project.demo} target="_blank" rel="noopener noreferrer" onPointerDown={(event) => event.stopPropagation()} className="group/link relative py-1 text-sm text-gray-400 transition-colors hover:text-white">
                       {lang === 'sk' ? 'Navštíviť web' : 'Visit website'}
@@ -206,7 +206,7 @@ export default function Projects() {
                   )}
                 </div>
                 <div>
-                  <p className="max-w-xl text-sm leading-6 text-gray-400 md:text-base md:leading-7">{project.description[lang]}</p>
+                  <p className="max-w-xl text-xs leading-5 text-gray-400 md:text-base md:leading-7">{project.description[lang]}</p>
                 </div>
               </motion.div>
             </motion.article>
