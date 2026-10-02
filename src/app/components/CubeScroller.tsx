@@ -20,6 +20,11 @@ export default function CubeScroller({ children }: { children: ReactNode }) {
   useEffect(() => { currentRef.current = current }, [current])
 
   useEffect(() => {
+    const previousHtmlOverscroll = document.documentElement.style.overscrollBehaviorY
+    const previousBodyOverscroll = document.body.style.overscrollBehaviorY
+    document.documentElement.style.overscrollBehaviorY = 'none'
+    document.body.style.overscrollBehaviorY = 'none'
+
     const isScrollLocked = (target: EventTarget | null) =>
       target instanceof Element && Boolean(target.closest('[data-section-scroll-lock]'))
 
@@ -54,6 +59,17 @@ export default function CubeScroller({ children }: { children: ReactNode }) {
       startX = e.touches[0].clientX
       startY = e.touches[0].clientY
     }
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touchActive || touchStartedInLockedArea || e.touches.length !== 1) return
+      const diffX = startX - e.touches[0].clientX
+      const diffY = startY - e.touches[0].clientY
+
+      // Keep vertical gestures inside the section navigator instead of letting
+      // the browser turn a downward swipe into pull-to-refresh.
+      if (Math.abs(diffY) >= 8 && Math.abs(diffY) > Math.abs(diffX)) {
+        e.preventDefault()
+      }
+    }
     const onTouchEnd = (e: TouchEvent) => {
       if (!touchActive || !e.changedTouches[0]) return
       touchActive = false
@@ -71,19 +87,23 @@ export default function CubeScroller({ children }: { children: ReactNode }) {
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
     window.addEventListener('touchend', onTouchEnd, { passive: true })
     window.addEventListener('touchcancel', onTouchCancel, { passive: true })
     return () => {
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
       window.removeEventListener('touchend', onTouchEnd)
       window.removeEventListener('touchcancel', onTouchCancel)
+      document.documentElement.style.overscrollBehaviorY = previousHtmlOverscroll
+      document.body.style.overscrollBehaviorY = previousBodyOverscroll
     }
   }, [goTo, total])
 
   return (
-    <div className="fixed inset-0 z-10 overflow-hidden">
+    <div className="fixed inset-0 z-10 overflow-hidden overscroll-none">
       <AnimatePresence custom={direction} mode="sync">
         <motion.div key={current} custom={direction} variants={vars} initial="enter" animate="center" exit="exit" className="absolute inset-0 overflow-hidden" style={{ willChange: 'transform, opacity' }}>
           {sections[current]}
