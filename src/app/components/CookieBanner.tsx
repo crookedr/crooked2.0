@@ -1,18 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/app/context/language-context'
 
 const STORAGE_KEY = 'cookie_consent_v1'
 
+const t = {
+  sk: { text: 'Tento web používa iba nevyhnutné cookies.', link: 'Viac info' },
+  en: { text: 'This site uses only essential cookies.', link: 'More info' },
+}
+
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false)
+  const { language } = useLanguage()
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY)
-      if (!stored) {
-        setVisible(true)
-      }
+      if (!stored) setVisible(true)
     } catch {
       setVisible(true)
     }
@@ -31,12 +36,9 @@ export default function CookieBanner() {
     <div className="fixed bottom-4 right-4 z-[80]">
       <div className="flex items-center gap-3 rounded-full border border-white/10 bg-black/70 px-4 py-2.5 backdrop-blur-md shadow-lg">
         <p className="text-[11px] text-gray-300 leading-tight">
-          Tento web používa iba nevyhnutné cookies.
-          <a
-            href="/cookies"
-            className="ml-1 underline hover:text-white transition"
-          >
-            Viac info
+          {t[language].text}
+          <a href="/cookies" className="ml-1 underline hover:text-white transition">
+            {t[language].link}
           </a>
         </p>
 
